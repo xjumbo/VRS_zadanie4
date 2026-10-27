@@ -71,12 +71,31 @@ void MX_USART2_UART_Init(void)
   
   /* USART2_RX Init */
 
-  	  // type DMA USART Rx configuration here
-
+  	  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_6,
+  			  	  	  	  	  	  LL_DMA_DIRECTION_PERIPH_TO_MEMORY |
+								  LL_DMA_PRIORITY_HIGH |
+								  LL_DMA_MODE_NORMAL |
+								  LL_DMA_PERIPH_NOINCREMENT |
+								  LL_DMA_MEMORY_INCREMENT |
+								  LL_DMA_PDATAALIGN_BYTE |
+								  LL_DMA_MDATAALIGN_BYTE);
+  	  LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_6, LL_USART_DMA_GetRegAddr(USART2, LL_USART_DMA_REG_DATA_RECEIVE));
+  	  LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_6, (uint32_t)bufferUSART2dma);
+  	  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_6, DMA_USART2_BUFFER_SIZE-128);
+  	  LL_DMA_EnableIT_HT(DMA1, LL_DMA_CHANNEL_6);
+  	  LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_6);
 
   /* USART2_TX Init */
 
-	  // type DMA USART Tx configuration here
+	  LL_DMA_ConfigTransfer(DMA1, LL_DMA_CHANNEL_7,
+			  	  	  	  	LL_DMA_DIRECTION_MEMORY_TO_PERIPH |
+							LL_DMA_PRIORITY_LOW |
+							LL_DMA_MODE_NORMAL |
+							LL_DMA_PERIPH_NOINCREMENT |
+							LL_DMA_MEMORY_INCREMENT |
+							LL_DMA_PDATAALIGN_BYTE |
+							LL_DMA_MDATAALIGN_BYTE);
+	  LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_7, LL_USART_DMA_GetRegAddr(USART2, LL_USART_DMA_REG_DATA_TRANSMIT));
 
 
   /* USART2 interrupt Init */
