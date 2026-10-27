@@ -37,7 +37,8 @@ void USART2_RegisterCallback(void *callback)
 
 /* Space for global variables, if you need them */
 
-	// type global variables here
+#define DMA_USART2_MAX_BURST 20
+static uint16_t rxReadPos = 0;
 
 
 /* USART2 init function */
@@ -81,7 +82,7 @@ void MX_USART2_UART_Init(void)
 								  LL_DMA_MDATAALIGN_BYTE);
   	  LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_6, LL_USART_DMA_GetRegAddr(USART2, LL_USART_DMA_REG_DATA_RECEIVE));
   	  LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_6, (uint32_t)bufferUSART2dma);
-  	  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_6, DMA_USART2_BUFFER_SIZE-128);
+  	  LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_6, DMA_USART2_BUFFER_SIZE);
   	  LL_DMA_EnableIT_HT(DMA1, LL_DMA_CHANNEL_6);
   	  LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_6);
 
@@ -115,7 +116,12 @@ void MX_USART2_UART_Init(void)
 
   /* Enable USART2 peripheral and interrupts*/
 
-  	  //type your code here:
+  	  LL_USART_EnableDMAReq_RX(USART2);
+  	  LL_USART_EnableDMAReq_TX(USART2);
+  	  LL_USART_ClearFlag_IDLE(USART2);
+  	  LL_USART_EnableIT_IDLE(USART2);
+  	  LL_USART_Enable(USART2);
+  	  LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_6);
 }
 
 
@@ -140,7 +146,32 @@ void USART2_PutBuffer(uint8_t *buffer, uint8_t length)
  */
 void USART2_CheckDmaReception(void)
 {
-	//type your implementation here
+	uint16_t pos;
+
+	if (USART2_ProcessData == 0) return;
+
+	pos = DMA_USART2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_6);
+
+	while (rxReadPos < pos)
+	{
+		USART2_ProcessData(bufferUSART2dma[rxReadPos++]);
+	}
+
+	if ((DMA_USART2_BUFFER_SIZE - pos) < DMA_USART2_MAX_BURST)
+	{
+		LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_6);
+		pos = DMA_USART2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_6);
+		while (rxReadPos < pos)
+		{
+			USART2_ProcessData(bufferUSART2dma[rxReadPos++]);
+		}
+		LL_DMA_ClearFlag_HT6(DMA1);
+		LL_DMA_ClearFlag_TC6(DMA1);
+		LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_6, (uint32_t)bufferUSART2dma);
+		LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_6, DMA_USART2_BUFFER_SIZE);
+		rxReadPos = 0;
+		LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_6);
+	}
 }
 
 
