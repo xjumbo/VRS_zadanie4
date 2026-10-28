@@ -23,6 +23,11 @@
 #include "dma.h"
 #include "usart.h"
 #include "gpio.h"
+#include <stdio.h>
+
+#define START_CHAR        '#'
+#define END_CHAR          '$'
+#define MAX_FRAME_CHARS   35
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -38,8 +43,16 @@ void proccesDmaData(uint8_t sign);
 
 /* Space for your global variables. */
 
-	// type your global variables here:
+letter_count_ letter_count;
+static char validString[MAX_FRAME_CHARS + 1];
+static volatile uint8_t validStringReady = 0;
+static char txBuffer[128];
 
+static void waitTxIdle(void)
+{
+	while (LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_7) != 0);
+	LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_7);
+}
 
 int main(void)
 {
@@ -59,7 +72,7 @@ int main(void)
 
   /* Space for your local variables, callback registration ...*/
 
-  	  //type your code here:
+  USART2_RegisterCallback(proccesDmaData);
 
   while (1)
   {
@@ -75,7 +88,15 @@ int main(void)
 	   * Example message (what I wish to see in terminal) - Valid string: Platn15uborZnakov, lower-case: 13, upper-case: 2
 	   */
 
-  	  	  	  //type your code here:
+	  if (validStringReady)
+	  {
+		  validStringReady = 0;
+		  waitTxIdle();
+		  int len = snprintf(txBuffer, sizeof(txBuffer),
+				  "Valid string: %s, lower-case: %d, upper-case: %d\r\n",
+				  validString, letter_count.small_letter, letter_count.capital_letter);
+		  USART2_PutBuffer((uint8_t *)txBuffer, (uint8_t)len);
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -119,7 +140,49 @@ void proccesDmaData(uint8_t sign)
 {
 	/* Process received data */
 
-		// type your algorithm here:
+		static uint8_t receiving = 0;
+		static uint8_t count = 0;
+		static uint8_t idx = 0;
+		static char payload[MAX_FRAME_CHARS + 1];
+
+		if (!receiving)
+		{
+			if (sign == START_CHAR) { receiving = 1; count = 0; idx = 0; }
+			return;
+		}
+
+		if (sign == START_CHAR)
+		{
+			count = 0; idx = 0;
+			return;
+		}
+
+		count++;
+
+		if (sign == END_CHAR)
+		{
+			uint8_t lower = 0, upper = 0;
+			for (uint8_t i = 0; i < idx; i++)
+			{
+				if (payload[i] >= 'a' && payload[i] <= 'z') lower++;
+				else if (payload[i] >= 'A' && payload[i] <= 'Z') upper++;
+			}
+			payload[idx] = '\0';
+			for (uint8_t i = 0; i <= idx; i++) validString[i] = payload[i];
+			letter_count.small_letter = lower;
+			letter_count.capital_letter = upper;
+			validStringReady = 1;
+			receiving = 0;
+			return;
+		}
+
+		if (count >= MAX_FRAME_CHARS)
+		{
+			receiving = 0;
+			return;
+		}
+
+		payload[idx++] = (char)sign;
 }
 
 
