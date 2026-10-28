@@ -74,7 +74,7 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-	  msTicks++;
+
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
@@ -187,7 +187,7 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   
   /* USER CODE BEGIN SysTick_IRQn 1 */
-
+	msTicks++;
   /* USER CODE END SysTick_IRQn 1 */
 }
 
