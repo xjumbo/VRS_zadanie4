@@ -174,7 +174,10 @@ void USART2_CheckDmaReception(void)
 	}
 }
 
-
+uint16_t USART2_GetDmaOccupancy(void)
+{
+	return DMA_USART2_BUFFER_SIZE - LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_6);
+}
 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

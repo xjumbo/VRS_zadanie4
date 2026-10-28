@@ -47,6 +47,7 @@ letter_count_ letter_count;
 static char validString[MAX_FRAME_CHARS + 1];
 static volatile uint8_t validStringReady = 0;
 static char txBuffer[128];
+volatile uint32_t msTicks = 0;
 
 static void waitTxIdle(void)
 {
@@ -65,6 +66,7 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
+  LL_SYSTICK_EnableIT();
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
@@ -73,6 +75,7 @@ int main(void)
   /* Space for your local variables, callback registration ...*/
 
   USART2_RegisterCallback(proccesDmaData);
+  uint32_t lastStatus = 0;
 
   while (1)
   {
@@ -95,6 +98,18 @@ int main(void)
 		  int len = snprintf(txBuffer, sizeof(txBuffer),
 				  "Valid string: %s, lower-case: %d, upper-case: %d\r\n",
 				  validString, letter_count.small_letter, letter_count.capital_letter);
+		  USART2_PutBuffer((uint8_t *)txBuffer, (uint8_t)len);
+	  }
+
+	  if ((msTicks - lastStatus) >= 2000)
+	  {
+		  lastStatus += 2000;
+		  uint16_t occupied = USART2_GetDmaOccupancy();
+		  uint32_t load10 = ((uint32_t)occupied * 1000UL) / DMA_USART2_BUFFER_SIZE;  // load in tenths of %
+		  waitTxIdle();
+		  int len = snprintf(txBuffer, sizeof(txBuffer),
+				  "Buffer capacity: %d bytes, occupied memory: %d bytes, load [in %%]: %d.%d%%\r\n",
+				  DMA_USART2_BUFFER_SIZE, occupied, (int)(load10 / 10), (int)(load10 % 10));
 		  USART2_PutBuffer((uint8_t *)txBuffer, (uint8_t)len);
 	  }
   }

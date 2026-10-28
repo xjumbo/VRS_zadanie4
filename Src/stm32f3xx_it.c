@@ -59,7 +59,7 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
-
+extern volatile uint32_t msTicks;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -74,7 +74,7 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-
+	  msTicks++;
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
